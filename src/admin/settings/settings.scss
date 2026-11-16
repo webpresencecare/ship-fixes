@@ -1,0 +1,15 @@
+/**
+ * Settings screen layout; the controls keep WordPress's own look.
+ */
+.ship-fixes-settings {
+	max-width: 40rem;
+	margin-block-start: 1rem;
+
+	.components-notice {
+		margin: 0 0 1rem;
+	}
+}
+
+.ship-fixes-settings-actions {
+	margin-block-start: 1.5rem;
+}

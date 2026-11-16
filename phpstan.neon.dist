@@ -1,0 +1,15 @@
+# PHPStan level 8, on PHP 8.4. Locally with the dev project's tools (they hold PHPStan and the WordPress stubs):
+# tools/check-plugin.sh <repository folder>. On GitHub: ci.yml (composer install, then vendor/bin/phpstan).
+parameters:
+    level: 8
+    phpVersion:
+        min: 80400
+        max: 80599
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: true
+    paths:
+        - ship-fixes.php
+        - uninstall.php
+        - includes
+    bootstrapFiles:
+        - stubs/constants.php
