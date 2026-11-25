@@ -42,7 +42,7 @@ None.
 
 ## Development
 
-The block and the admin screens are built with `@wordpress/scripts` (`src/` into `build/`, committed: the release zip ships it as built and tested). The blocks build also writes `build/blocks/blocks-manifest.php` (`--blocks-manifest`), so WordPress reads one PHP file instead of a `block.json` per block. Block icons come from `@wordpress/icons`. Front-end behavior, when a fix needs some, uses the Interactivity API, never plain DOM scripts or jQuery. DataForm (`@wordpress/dataviews/wp`) is bundled: WordPress does not provide it.
+The block and the admin screens are built with `@wordpress/scripts` (`src/` into `build/`, committed: the release zip ships it as built and tested). The blocks build also writes `build/blocks/blocks-manifest.php` (`--blocks-manifest`), so WordPress reads one PHP file instead of a `block.json` per block. Block icons come from `@wordpress/icons`. Front-end behavior, when a fix needs some, uses the Interactivity API, never plain DOM scripts or jQuery. DataForm (`@wordpress/dataviews/wp`) is bundled: WordPress does not provide it. After every build, `bin/guard-build.mjs` adds the direct access guard to the generated PHP files (`*.asset.php`, `blocks-manifest.php`); `bin/build-zip.sh` refuses a build without it.
 
 ```
 npm install

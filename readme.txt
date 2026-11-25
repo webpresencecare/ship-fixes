@@ -4,7 +4,7 @@ Tags: block, table of contents
 Requires at least: 7.2
 Tested up to: 7.2
 Requires PHP: 8.4
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,6 +32,9 @@ None. Updates are installed by hand (Plugins, Add Plugin, Upload Plugin).
 Deleting the plugin removes its settings from every site. It keeps nothing else.
 
 == Changelog ==
+
+= 0.1.1 =
+* Code: the generated script files (`*.asset.php`, `blocks-manifest.php`) stop when opened directly.
 
 = 0.1.0 =
 * First version: the Table of Contents block for sites without the Gutenberg plugin, switched on or off per site or for the whole network.

@@ -3,7 +3,7 @@
  * Plugin Name:       Ship Fixes
  * Plugin URI:        https://www.webpresencecare.com/plugins
  * Description:       Small fixes and stopgaps for my sites, each one switched on or off: for now, the Table of Contents block without the Gutenberg plugin.
- * Version:           0.1.0
+ * Version:           0.1.1
  * Requires at least: 7.2
  * Requires PHP:      8.4
  * Author:            Patricia BT
@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SHIP_FIXES_VERSION', '0.1.0' );
+define( 'SHIP_FIXES_VERSION', '0.1.1' );
 define( 'SHIP_FIXES_FILE', __FILE__ );
 define( 'SHIP_FIXES_DIR', __DIR__ );
 

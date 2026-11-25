@@ -5,7 +5,7 @@
  * @package Ship\Fixes
  */
 
-define( 'SHIP_FIXES_VERSION', '0.1.0' );
+define( 'SHIP_FIXES_VERSION', '0.1.1' );
 define( 'SHIP_FIXES_FILE', __DIR__ . '/../ship-fixes.php' );
 define( 'SHIP_FIXES_DIR', dirname( __DIR__ ) );
 define( 'WPINC', 'wp-includes' );

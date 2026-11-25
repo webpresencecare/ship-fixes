@@ -1,4 +1,4 @@
-<?php
+<?php defined( 'ABSPATH' ) || exit;
 // This file is generated. Do not modify it manually.
 return array(
 	'table-of-contents' => array(
