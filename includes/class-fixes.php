@@ -64,8 +64,8 @@ final class Fixes {
 			),
 			array(
 				'id'          => 'youtube_no_cookie',
-				'label'       => __( 'YouTube privacy-enhanced links', 'ship-fixes' ),
-				'description' => __( "The Embed block accepts YouTube links in privacy-enhanced mode (youtube-nocookie.com/embed/...) and shows them as YouTube videos. The player is written by this site, without asking YouTube's oEmbed service.", 'ship-fixes' ),
+				'label'       => __( 'YouTube privacy-enhanced mode', 'ship-fixes' ),
+				'description' => __( "YouTube videos in Embed blocks play from youtube-nocookie.com (YouTube's privacy-enhanced mode), whatever the link: youtube.com, youtu.be, Shorts, live or youtube-nocookie.com. The video's title and start time are kept.", 'ship-fixes' ),
 			),
 		);
 	}

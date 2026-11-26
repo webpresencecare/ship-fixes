@@ -1,0 +1,24 @@
+# French translation of Ship Fixes: the strings of the YouTube privacy-enhanced mode fix (0.3.0).
+# The other strings stay in English until translated.
+# This file is distributed under the same license as the Ship Fixes plugin (GPL-2.0-or-later).
+msgid ""
+msgstr ""
+"Project-Id-Version: Ship Fixes 0.3.0\n"
+"Language: fr_FR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Domain: ship-fixes\n"
+
+#: includes/class-fixes.php
+msgid "YouTube privacy-enhanced mode"
+msgstr "YouTube en mode Confidentialité avancée"
+
+#: includes/class-fixes.php
+msgid "YouTube videos in Embed blocks play from youtube-nocookie.com (YouTube's privacy-enhanced mode), whatever the link: youtube.com, youtu.be, Shorts, live or youtube-nocookie.com. The video's title and start time are kept."
+msgstr "Les vidéos YouTube des blocs Contenu embarqué sont lues depuis youtube-nocookie.com (mode Confidentialité avancée de YouTube), quel que soit le lien : youtube.com, youtu.be, Shorts, direct ou youtube-nocookie.com. Le titre de la vidéo et son point de départ sont conservés."
+
+#: includes/class-youtube-no-cookie.php
+msgid "YouTube video player"
+msgstr "Lecteur vidéo YouTube"

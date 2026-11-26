@@ -5,9 +5,10 @@
  * Network-wide: the network screen (a switch per fix, site administrators may decide), saved and kept after a reload,
  * accessibility (axe, WCAG 2.2 AA); the network turning site choices off removes the site screen. Both ways: the site
  * screen, saved, kept, axe; the Table of Contents block for a visitor and in the editor (valid, listing the post's
- * headings), gone when the fix is off; a youtube-nocookie.com link in the Embed block, a YouTube embed in the editor
- * and the player for a visitor (YouTube blocked: nothing is loaded from it); a visitor gets nothing from the REST
- * routes.
+ * headings), gone when the fix is off; YouTube links of every form pasted in the editor: YouTube embeds whose
+ * players play from youtube-nocookie.com with the video's own title (YouTube's real oEmbed service, asked from the
+ * server), for a visitor too, and as WordPress makes them when the fix is off (YouTube blocked in the browsers:
+ * nothing is loaded from it); a visitor gets nothing from the REST routes.
  * Every setting is put back and everything made here is deleted at the end.
  */
 import { execFileSync } from 'node:child_process';
@@ -267,77 +268,122 @@ test( 'Table of Contents block: for a visitor, in the editor, and gone when the 
 	expect( fixIsOn() ).toBe( 'yes' );
 } );
 
-test( 'YouTube privacy-enhanced link: a YouTube embed in the editor, the player for a visitor', async ( {
+test( 'YouTube privacy-enhanced mode: every link form plays from youtube-nocookie.com, with its title', async ( {
 	page,
 	browser,
 } ) => {
-	const url = 'https://www.youtube-nocookie.com/embed/eMTEmPNwkGQ';
-	const errors = [];
-	page.on( 'pageerror', ( error ) => errors.push( error.message ) );
-	// Offline: the players are checked, never loaded. By host: the editor's preview request names the link too.
+	// Asks YouTube's real oEmbed service from the server (the dev network must be online). In the browsers, YouTube
+	// is blocked: the players are checked, never loaded.
+	const links = {
+		'youtu.be': [ 'https://youtu.be/eMTEmPNwkGQ', 'eMTEmPNwkGQ' ],
+		'youtu.be, si': [
+			'https://youtu.be/jzuTOdM4kRI?si=SKFPywCGF82_VjsQ',
+			'jzuTOdM4kRI',
+		],
+		'watch, t': [
+			'https://www.youtube.com/watch?v=0zQjLy-f_Dg&t=2117s',
+			'0zQjLy-f_Dg?start=2117',
+		],
+		'youtu.be, feature': [
+			'https://youtu.be/HVVpa_-pLkE?feature=shared',
+			'HVVpa_-pLkE',
+		],
+		nocookie: [
+			'https://www.youtube-nocookie.com/embed/eMTEmPNwkGQ',
+			'eMTEmPNwkGQ',
+		],
+		'youtube.com embed': [
+			'https://www.youtube.com/embed/jzuTOdM4kRI?start=60',
+			'jzuTOdM4kRI?start=60',
+		],
+		'm., v not first': [
+			'https://m.youtube.com/watch?feature=shared&v=HVVpa_-pLkE',
+			'HVVpa_-pLkE',
+		],
+		shorts: [ 'https://www.youtube.com/shorts/eMTEmPNwkGQ', 'eMTEmPNwkGQ' ],
+		live: [ 'https://www.youtube.com/live/0zQjLy-f_Dg', '0zQjLy-f_Dg' ],
+	};
+	const GENERIC = 'YouTube video player';
 	const youtube = ( address ) =>
 		/(^|\.)youtube(-nocookie)?\.com$/.test( address.hostname );
 	const offline = ( route ) => route.abort();
+	const errors = [];
+	page.on( 'pageerror', ( error ) => errors.push( error.message ) );
 	await page.route( youtube, offline );
 	const id = Number(
 		wp(
 			'post',
 			'create',
 			`--post_title=E2E YouTube ${ STAMP }`,
-			'--post_content=<!-- wp:paragraph --><p>Below the video.</p><!-- /wp:paragraph -->',
+			'--post_content=<!-- wp:paragraph --><p>Below the videos.</p><!-- /wp:paragraph -->',
 			'--post_status=draft',
 			'--porcelain'
 		)
 	);
 	made.push( id );
 
+	// In the editor, each link pasted: a YouTube embed whose preview plays from youtube-nocookie.com.
 	await page.goto( `/wp-admin/post.php?post=${ id }&action=edit` );
-	// Once the post's own block is there, the editor is ready: a block inserted earlier is replaced by the post's.
 	await page.waitForFunction(
 		() =>
 			window.wp?.data?.select( 'core/block-editor' )?.getBlocks().length >
 			0
 	);
-	// As a pasted link: the paste handler gives the Embed block the variation's attributes.
-	await page.evaluate( ( link ) => {
-		window.wp.data
-			.dispatch( 'core/block-editor' )
-			.insertBlocks(
-				window.wp.blocks.rawHandler( { HTML: `<p>${ link }</p>` } ),
-				0
-			);
-	}, url );
-	// The variation applies at once; the preview's attributes follow.
+	const urls = Object.values( links ).map( ( [ url ] ) => url );
+	await page.evaluate( ( all ) => {
+		window.wp.data.dispatch( 'core/block-editor' ).insertBlocks(
+			window.wp.blocks.rawHandler( {
+				HTML: all.map( ( url ) => `<p>${ url }</p>` ).join( '' ),
+			} ),
+			0
+		);
+	}, urls );
 	await page.waitForFunction(
-		() =>
-			'video' ===
-			window.wp.data.select( 'core/block-editor' ).getBlocks()[ 0 ]
-				?.attributes.type
+		( count ) =>
+			window.wp.data
+				.select( 'core/block-editor' )
+				.getBlocks()
+				.filter( ( block ) => 'video' === block.attributes.type )
+				.length === count,
+		urls.length,
+		{ timeout: 45000 }
 	);
-	const block = await page.evaluate( () => {
-		const first = window.wp.data
+	const blocks = await page.evaluate( () =>
+		window.wp.data
 			.select( 'core/block-editor' )
-			.getBlocks()[ 0 ];
-		return {
-			name: first.name,
-			type: first.attributes.type,
-			className: first.attributes.className,
-			variation: window.wp.data
-				.select( 'core/blocks' )
-				.getActiveBlockVariation( first.name, first.attributes )?.name,
-		};
-	} );
-	expect( block ).toEqual( {
-		name: 'core/embed',
-		type: 'video',
-		className: 'wp-embed-aspect-16-9 wp-has-aspect-ratio',
-		variation: 'youtube',
-	} );
-	await expect(
-		page
-			.frameLocator( 'iframe[name="editor-canvas"]' )
+			.getBlocks()
+			.filter( ( block ) => 'core/embed' === block.name )
+			.map( ( block ) => ( {
+				url: block.attributes.url,
+				variation: window.wp.data
+					.select( 'core/blocks' )
+					.getActiveBlockVariation( block.name, block.attributes )
+					?.name,
+				className: block.attributes.className,
+			} ) )
+	);
+	expect( blocks ).toEqual(
+		urls.map( ( url ) => ( {
+			url,
+			variation: 'youtube',
+			className: 'wp-embed-aspect-16-9 wp-has-aspect-ratio',
+		} ) )
+	);
+	const canvas = page.frameLocator( 'iframe[name="editor-canvas"]' );
+	for ( const [ index, [ , expected ] ] of Object.values(
+		links
+	).entries() ) {
+		const player = canvas
 			.locator( 'figure.wp-block-embed-youtube iframe' )
-	).toBeVisible();
+			.nth( index )
+			.contentFrame()
+			.locator( 'iframe' );
+		await expect( player ).toHaveAttribute(
+			'src',
+			`https://www.youtube-nocookie.com/embed/${ expected }`
+		);
+		await expect( player ).not.toHaveAttribute( 'title', GENERIC );
+	}
 	await page.evaluate( () => {
 		window.wp.data
 			.dispatch( 'core/editor' )
@@ -346,25 +392,71 @@ test( 'YouTube privacy-enhanced link: a YouTube embed in the editor, the player 
 	} );
 	expect( errors ).toEqual( [] );
 
+	// For a visitor: every player on youtube-nocookie.com with the video's own title, nothing on www.youtube.com.
 	const visitor = await browser.newContext( {
 		storageState: { cookies: [], origins: [] },
 		ignoreHTTPSErrors: true,
 	} );
-	await visitor.route( youtube, offline );
+	const requested = [];
+	await visitor.route( youtube, ( route ) => {
+		requested.push( route.request().url() );
+		return route.abort();
+	} );
 	const front = await visitor.newPage();
-	await front.goto(
-		wp( 'post', 'list', `--post__in=${ id }`, '--field=url' )
+	const link = wp( 'post', 'list', `--post__in=${ id }`, '--field=url' );
+	await front.goto( link );
+	const players = front.locator( 'figure.wp-block-embed-youtube iframe' );
+	await expect( players ).toHaveCount( urls.length );
+	for ( const [ index, [ , expected ] ] of Object.values(
+		links
+	).entries() ) {
+		const player = players.nth( index );
+		await expect( player ).toHaveAttribute(
+			'src',
+			`https://www.youtube-nocookie.com/embed/${ expected }`
+		);
+		const title = await player.getAttribute( 'title' );
+		expect( title ).not.toBe( GENERIC );
+	}
+	expect(
+		requested.filter( ( url ) =>
+			new URL( url ).hostname.endsWith( 'youtube.com' )
+		)
+	).toEqual( [] );
+	const axe = await new AxeBuilder( { page: front } )
+		.include( '.entry-content, .wp-block-post-content' )
+		.withTags( WCAG )
+		.analyze();
+	expect( axe.violations ).toEqual( [] );
+
+	// Off for this site: the players as WordPress makes them, from its cache.
+	const before = readOption( SITE_OPTION );
+	wp(
+		'option',
+		'update',
+		SITE_OPTION,
+		'{"youtube_no_cookie":false}',
+		'--format=json'
 	);
-	const player = front.locator(
-		'figure.wp-block-embed-youtube.is-type-video iframe'
-	);
-	await expect( player ).toHaveAttribute( 'src', url );
-	await expect( player ).toHaveAttribute( 'title', 'YouTube video player' );
-	await expect( player ).toHaveAttribute(
-		'referrerpolicy',
-		'strict-origin-when-cross-origin'
+	if ( networkWide ) {
+		wp(
+			'site',
+			'option',
+			'patch',
+			'update',
+			NETWORK_OPTION,
+			'site_overrides',
+			'true',
+			'--format=json'
+		);
+	}
+	await front.goto( link );
+	await expect( players.first() ).toHaveAttribute(
+		'src',
+		/^https:\/\/www\.youtube\.com\/embed\/eMTEmPNwkGQ/
 	);
 	await visitor.close();
+	wp( 'option', 'update', SITE_OPTION, before, '--format=json' );
 } );
 
 test( 'network turns site choices off: no site screen', async ( { page } ) => {

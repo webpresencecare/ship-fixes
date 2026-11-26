@@ -1,13 +1,13 @@
 # Ship Fixes
 
-Small fixes and stopgaps for my sites, each one switched on or off: the Table of Contents block without the Gutenberg plugin, and YouTube privacy-enhanced links in the Embed block.
+Small fixes and stopgaps for my sites, each one switched on or off: the Table of Contents block without the Gutenberg plugin, and YouTube videos in privacy-enhanced mode.
 
 ## What it does
 
 A fix is one small, separate thing, switched on or off in the settings. Fixes are stopgaps: each one says when it is no longer needed.
 
 - **Table of Contents block** (`core/table-of-contents`, on by default): the block of the Gutenberg plugin, for sites without that plugin. WordPress 7.2 ships the block's code but does not register it while it is experimental, so content written with the Gutenberg plugin shows no table of contents (and "unsupported block" in the editor) once that plugin is gone. The fix registers the block under WordPress's own name, so that content keeps working, and only when nothing else registered it: the Gutenberg plugin, or later WordPress itself, win. The block and its rendering follow Gutenberg 24.4.1 (`packages/block-library/src/table-of-contents`, GPL-2.0-or-later); see "Updating the Table of Contents block" below. No longer needed when WordPress registers the block itself.
-- **YouTube privacy-enhanced links** (on by default): WordPress embeds youtube.com and youtu.be links through YouTube's oEmbed service, which knows no `https://www.youtube-nocookie.com/embed/<video>` links (YouTube's "privacy-enhanced mode"), so the Embed block says it cannot embed them. The fix adds an embed handler (`wp_embed_register_handler()`, WordPress's API for links without an oEmbed provider) that writes YouTube's own embed code (16:9, the link's query kept, `referrerpolicy` as YouTube needs it). In the editor, WordPress's oEmbed proxy would try oEmbed discovery first (a request to the link's page) and call the result "Embed Handler"; for these links the fix answers the proxy itself (`rest_dispatch_request`, after the proxy's permission check) as YouTube with type `video`, so the block becomes WordPress's YouTube embed (`providerNameSlug` `youtube`, its classes and aspect ratio) and no request leaves the site. A hidden variation of the Embed block (`src/admin/youtube-no-cookie`, `registerBlockVariation()`, no inserter item) carries the same pattern, so a pasted link is upgraded like a youtube.com link: `providerNameSlug` `youtube` and `responsive` (the player keeps 16:9 when the window narrows). No new block: posts keep core's Embed block. No longer needed when WordPress embeds these links itself; with the fix off, such links show as plain links.
+- **YouTube privacy-enhanced mode** (`youtube_no_cookie`, on by default): every YouTube link in an Embed block plays from `www.youtube-nocookie.com/embed/` (YouTube's "privacy-enhanced mode"): youtu.be, youtube.com `watch` (`v` anywhere in the query), `/embed/`, `/shorts/`, `/live/`, playlists, and youtube-nocookie.com `/embed/` links; http or https, with or without `www.` or `m.`. WordPress's own oEmbed makes the player (a request from the server to YouTube's oEmbed service, the answer cached in the post's `_oembed_*` meta), so the player keeps the video's real title; the fix only rewrites the player's address on output (`WP_HTML_Tag_Processor`): host moved to youtube-nocookie.com, the link's start time added as `start=<seconds>` (from `t=2117s`, `t=2117`, `t=35m17s`, `t=1h2m3s`, `start=`, or `#t=`), share-tracking parameters (`si`, `feature`, `pp`) left out. Hooks: `embed_oembed_html` (front end, cached and fresh answers: players cached before the fix change too, no cache to empty), `rest_request_after_callbacks` on the oEmbed proxy (editor preview, also its own cached answers; refusals stay as they are), `oembed_providers` and `oembed_fetch_url` (`/embed/` links, which WordPress has no provider for, are asked about as the video's `watch` or `playlist` link). The caches keep YouTube's answer as it came: switched off, the players are shown as WordPress makes them. When YouTube cannot answer (offline, video removed), a player written here with a generic title (`embed_maybe_make_link`; in the editor, instead of the proxy's "cannot embed"). A hidden variation of the Embed block (`src/admin/youtube-no-cookie`, `registerBlockVariation()`, no inserter item) matches youtube-nocookie.com links, so a pasted one becomes a responsive YouTube embed as youtube.com links do (WordPress's own variation does not know that host). No new block: posts keep WordPress's Embed block.
 - **Settings** (site by site): on a single site, or activated on some sites of a network, each site's Settings, Ship Fixes, for its administrators (`manage_options`): one switch per fix. Activated for the whole network, also Network Admin, Settings, Ship Fixes (`manage_network_options`): the fixes for every site, and whether site administrators may decide for their own site (otherwise their screen goes). Where they may, what a site saved wins over the network's choice. DataForm screens (React, `src/admin/settings`) saving through the plugin's REST routes.
 - **Uninstall**: removes the settings from every site. The plugin keeps nothing else.
 
@@ -22,6 +22,10 @@ A fix is one small, separate thing, switched on or off in the settings. Fixes ar
 
 The block changes in Gutenberg while it is experimental. To follow a newer Gutenberg release, compare `packages/block-library/src/table-of-contents` at that tag with `src/blocks/table-of-contents` (editor) and `includes/class-table-of-contents.php` (rendering, from the block's `index.php`). Differences kept on purpose: this plugin's text domain; the select of `@wordpress/components` instead of `@wordpress/ui` (WordPress 7.2 does not provide that package to plugins); the browser's parser instead of `__unstableStripHTML`; methods of a class instead of the `block_core_table_of_contents_*` functions (WordPress's own names); TypeScript files written as JavaScript. Saved content is a contract: the block name, its attributes (`onlyIncludeCurrentPage`, `maxLevel`, `ordered`) and the deprecation for posts saved with a list (`deprecated.js`).
 
+## Translations
+
+`languages/` holds the plugin's own translations, loaded on `init` (`load_plugin_textdomain()`; translations from translate.wordpress.org win). After changing a `.po` file, in the DDEV project: `wp i18n make-mo languages`, `wp i18n make-php languages`, then `node bin/guard-build.mjs languages` (the direct access guard on the `.l10n.php` file).
+
 ## Data model
 
 | Kind | Name | Notes |
@@ -29,7 +33,8 @@ The block changes in Gutenberg while it is experimental. To follow a newer Guten
 | Option (each site) | `ship_fixes_settings` | Fix ID => bool, only the fixes the site decided on (autoloaded: read on every request). |
 | Network option | `ship_fixes_network` | Network-wide only: fix ID => bool, and `site_overrides` (bool, default true). |
 | Fix IDs | `table_of_contents`, `youtube_no_cookie` | Both default on. |
-| Embed handler | `ship_fixes_youtube_no_cookie` | youtube-nocookie.com/embed/ links. |
+| oEmbed provider | `#^https?://((m\|www)\.)?youtube(-nocookie)?\.com/embed/#i` | YouTube's oEmbed service, for `/embed/` links. |
+| Translations | `languages/ship-fixes-fr_FR.*` | French (the YouTube fix's texts); `.po` source, `.mo` and `.l10n.php` compiled. |
 | Block | `core/table-of-contents` | WordPress's own name, registered only when missing. Attributes `onlyIncludeCurrentPage` (bool), `maxLevel` (number), `ordered` (bool); context `postId`, `postType`; rendered on the server. |
 | REST | `ship-fixes/v1/settings`, `ship-fixes/v1/network-settings` | GET and POST; the site's for its administrators where sites may decide, the network's for network administrators when network-wide. |
 | Script handles | `ship-fixes-settings`, `ship-fixes-youtube-no-cookie` (block editor), the block's `wp-block-table-of-contents-editor` | From `build/`. |
@@ -40,7 +45,7 @@ No personal data, no cookies, nothing kept in the visitor's browser. Requests to
 
 ## Outside services
 
-YouTube, in the visitor's browser only: a page with a youtube-nocookie.com video loads YouTube's player from there (YouTube's privacy-enhanced mode). The plugin itself sends YouTube nothing, neither from the editor nor when the page is shown.
+YouTube (YouTube privacy-enhanced mode fix): the server asks YouTube's oEmbed service for the player and title of each YouTube link, as WordPress itself does (the link and the site's address, nothing about visitors; cached). Visitors' browsers load the players from youtube-nocookie.com.
 
 ## Development
 

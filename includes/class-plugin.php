@@ -24,10 +24,21 @@ final class Plugin {
 	 * @return void
 	 */
 	public static function boot(): void {
+		add_action( 'init', array( __CLASS__, 'load_textdomain' ) );
 		Fixes::init();
 		Rest::init();
 		if ( is_admin() ) {
 			Admin::init();
 		}
+	}
+
+	/**
+	 * Loads the plugin's own translations (languages/); translations from translate.wordpress.org, when there are
+	 * some, win. On init: earlier triggers WordPress's "translation loading was triggered too early" notice.
+	 *
+	 * @return void
+	 */
+	public static function load_textdomain(): void {
+		load_plugin_textdomain( 'ship-fixes', false, dirname( plugin_basename( SHIP_FIXES_FILE ) ) . '/languages' );
 	}
 }
