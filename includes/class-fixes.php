@@ -31,6 +31,10 @@ final class Fixes {
 			'class'   => Table_Of_Contents::class,
 			'default' => true,
 		),
+		'youtube_no_cookie' => array(
+			'class'   => YouTube_No_Cookie::class,
+			'default' => true,
+		),
 	);
 
 	/**
@@ -57,6 +61,11 @@ final class Fixes {
 				'id'          => 'table_of_contents',
 				'label'       => __( 'Table of Contents block', 'ship-fixes' ),
 				'description' => __( 'The Table of Contents block of the Gutenberg plugin, for sites without that plugin. It steps aside when the Gutenberg plugin or WordPress itself provides the block.', 'ship-fixes' ),
+			),
+			array(
+				'id'          => 'youtube_no_cookie',
+				'label'       => __( 'YouTube privacy-enhanced links', 'ship-fixes' ),
+				'description' => __( "The Embed block accepts YouTube links in privacy-enhanced mode (youtube-nocookie.com/embed/...) and shows them as YouTube videos. The player is written by this site, without asking YouTube's oEmbed service.", 'ship-fixes' ),
 			),
 		);
 	}

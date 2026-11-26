@@ -5,6 +5,7 @@
  * @package Ship\Fixes
  */
 
+use Ship\Fixes\Fixes;
 use Ship\Fixes\Rest;
 use Ship\Fixes\Settings;
 
@@ -12,6 +13,15 @@ use Ship\Fixes\Settings;
  * @covers \Ship\Fixes\Rest
  */
 class RestTest extends Ship_Fixes_TestCase {
+
+	/**
+	 * Every fix with its default, and the Table of Contents off: what the routes answer after saving that.
+	 *
+	 * @return array<string, bool>
+	 */
+	private function contents_off(): array {
+		return array_merge( array_map( static fn ( array $fix ): bool => $fix['default'], Fixes::FIXES ), array( 'table_of_contents' => false ) );
+	}
 
 	/**
 	 * Sends a request to a settings route.
@@ -40,8 +50,8 @@ class RestTest extends Ship_Fixes_TestCase {
 		wp_set_current_user( $this->user( 'administrator' ) );
 		$saved = $this->call( 'settings', 'POST', array( 'table_of_contents' => false ) );
 		$this->assertSame( 200, $saved->get_status() );
-		$this->assertSame( array( 'table_of_contents' => false ), $saved->get_data() );
-		$this->assertSame( array( 'table_of_contents' => false ), $this->call( 'settings' )->get_data() );
+		$this->assertSame( $this->contents_off(), $saved->get_data() );
+		$this->assertSame( $this->contents_off(), $this->call( 'settings' )->get_data() );
 
 		$this->assertSame( 403, $this->call( 'network-settings' )->get_status(), 'A site administrator is not a network administrator.' );
 		wp_set_current_user( $this->user( 'administrator', true ) );
@@ -64,13 +74,7 @@ class RestTest extends Ship_Fixes_TestCase {
 			)
 		);
 		$this->assertSame( 200, $saved->get_status() );
-		$this->assertSame(
-			array(
-				'table_of_contents' => false,
-				'site_overrides'    => false,
-			),
-			$saved->get_data()
-		);
+		$this->assertSame( array_merge( $this->contents_off(), array( 'site_overrides' => false ) ), $saved->get_data() );
 		$this->assertSame( 403, $this->call( 'settings' )->get_status(), 'The network decides for every site now.' );
 	}
 

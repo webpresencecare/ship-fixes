@@ -5,7 +5,9 @@
  * Network-wide: the network screen (a switch per fix, site administrators may decide), saved and kept after a reload,
  * accessibility (axe, WCAG 2.2 AA); the network turning site choices off removes the site screen. Both ways: the site
  * screen, saved, kept, axe; the Table of Contents block for a visitor and in the editor (valid, listing the post's
- * headings), gone when the fix is off; a visitor gets nothing from the REST routes.
+ * headings), gone when the fix is off; a youtube-nocookie.com link in the Embed block, a YouTube embed in the editor
+ * and the player for a visitor (YouTube blocked: nothing is loaded from it); a visitor gets nothing from the REST
+ * routes.
  * Every setting is put back and everything made here is deleted at the end.
  */
 import { execFileSync } from 'node:child_process';
@@ -263,6 +265,106 @@ test( 'Table of Contents block: for a visitor, in the editor, and gone when the 
 	await visitor.close();
 	wp( 'option', 'update', SITE_OPTION, before, '--format=json' );
 	expect( fixIsOn() ).toBe( 'yes' );
+} );
+
+test( 'YouTube privacy-enhanced link: a YouTube embed in the editor, the player for a visitor', async ( {
+	page,
+	browser,
+} ) => {
+	const url = 'https://www.youtube-nocookie.com/embed/eMTEmPNwkGQ';
+	const errors = [];
+	page.on( 'pageerror', ( error ) => errors.push( error.message ) );
+	// Offline: the players are checked, never loaded. By host: the editor's preview request names the link too.
+	const youtube = ( address ) =>
+		/(^|\.)youtube(-nocookie)?\.com$/.test( address.hostname );
+	const offline = ( route ) => route.abort();
+	await page.route( youtube, offline );
+	const id = Number(
+		wp(
+			'post',
+			'create',
+			`--post_title=E2E YouTube ${ STAMP }`,
+			'--post_content=<!-- wp:paragraph --><p>Below the video.</p><!-- /wp:paragraph -->',
+			'--post_status=draft',
+			'--porcelain'
+		)
+	);
+	made.push( id );
+
+	await page.goto( `/wp-admin/post.php?post=${ id }&action=edit` );
+	// Once the post's own block is there, the editor is ready: a block inserted earlier is replaced by the post's.
+	await page.waitForFunction(
+		() =>
+			window.wp?.data?.select( 'core/block-editor' )?.getBlocks().length >
+			0
+	);
+	// As a pasted link: the paste handler gives the Embed block the variation's attributes.
+	await page.evaluate( ( link ) => {
+		window.wp.data
+			.dispatch( 'core/block-editor' )
+			.insertBlocks(
+				window.wp.blocks.rawHandler( { HTML: `<p>${ link }</p>` } ),
+				0
+			);
+	}, url );
+	// The variation applies at once; the preview's attributes follow.
+	await page.waitForFunction(
+		() =>
+			'video' ===
+			window.wp.data.select( 'core/block-editor' ).getBlocks()[ 0 ]
+				?.attributes.type
+	);
+	const block = await page.evaluate( () => {
+		const first = window.wp.data
+			.select( 'core/block-editor' )
+			.getBlocks()[ 0 ];
+		return {
+			name: first.name,
+			type: first.attributes.type,
+			className: first.attributes.className,
+			variation: window.wp.data
+				.select( 'core/blocks' )
+				.getActiveBlockVariation( first.name, first.attributes )?.name,
+		};
+	} );
+	expect( block ).toEqual( {
+		name: 'core/embed',
+		type: 'video',
+		className: 'wp-embed-aspect-16-9 wp-has-aspect-ratio',
+		variation: 'youtube',
+	} );
+	await expect(
+		page
+			.frameLocator( 'iframe[name="editor-canvas"]' )
+			.locator( 'figure.wp-block-embed-youtube iframe' )
+	).toBeVisible();
+	await page.evaluate( () => {
+		window.wp.data
+			.dispatch( 'core/editor' )
+			.editPost( { status: 'publish' } );
+		return window.wp.data.dispatch( 'core/editor' ).savePost();
+	} );
+	expect( errors ).toEqual( [] );
+
+	const visitor = await browser.newContext( {
+		storageState: { cookies: [], origins: [] },
+		ignoreHTTPSErrors: true,
+	} );
+	await visitor.route( youtube, offline );
+	const front = await visitor.newPage();
+	await front.goto(
+		wp( 'post', 'list', `--post__in=${ id }`, '--field=url' )
+	);
+	const player = front.locator(
+		'figure.wp-block-embed-youtube.is-type-video iframe'
+	);
+	await expect( player ).toHaveAttribute( 'src', url );
+	await expect( player ).toHaveAttribute( 'title', 'YouTube video player' );
+	await expect( player ).toHaveAttribute(
+		'referrerpolicy',
+		'strict-origin-when-cross-origin'
+	);
+	await visitor.close();
 } );
 
 test( 'network turns site choices off: no site screen', async ( { page } ) => {

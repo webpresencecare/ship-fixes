@@ -1,0 +1,1 @@
+(()=>{"use strict";(0,window.wp.blocks.registerBlockVariation)("core/embed",{name:"ship-fixes-youtube-no-cookie",patterns:[/^https?:\/\/(www\.)?youtube-nocookie\.com\/embed\/[\w-]+\/?([?#].*)?$/i],attributes:{providerNameSlug:"youtube",responsive:!0},scope:[]})})();

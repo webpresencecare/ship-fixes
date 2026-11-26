@@ -1,12 +1,13 @@
 # Ship Fixes
 
-Small fixes and stopgaps for my sites, each one switched on or off: for now, the Table of Contents block without the Gutenberg plugin.
+Small fixes and stopgaps for my sites, each one switched on or off: the Table of Contents block without the Gutenberg plugin, and YouTube privacy-enhanced links in the Embed block.
 
 ## What it does
 
 A fix is one small, separate thing, switched on or off in the settings. Fixes are stopgaps: each one says when it is no longer needed.
 
 - **Table of Contents block** (`core/table-of-contents`, on by default): the block of the Gutenberg plugin, for sites without that plugin. WordPress 7.2 ships the block's code but does not register it while it is experimental, so content written with the Gutenberg plugin shows no table of contents (and "unsupported block" in the editor) once that plugin is gone. The fix registers the block under WordPress's own name, so that content keeps working, and only when nothing else registered it: the Gutenberg plugin, or later WordPress itself, win. The block and its rendering follow Gutenberg 24.4.1 (`packages/block-library/src/table-of-contents`, GPL-2.0-or-later); see "Updating the Table of Contents block" below. No longer needed when WordPress registers the block itself.
+- **YouTube privacy-enhanced links** (on by default): WordPress embeds youtube.com and youtu.be links through YouTube's oEmbed service, which knows no `https://www.youtube-nocookie.com/embed/<video>` links (YouTube's "privacy-enhanced mode"), so the Embed block says it cannot embed them. The fix adds an embed handler (`wp_embed_register_handler()`, WordPress's API for links without an oEmbed provider) that writes YouTube's own embed code (16:9, the link's query kept, `referrerpolicy` as YouTube needs it). In the editor, WordPress's oEmbed proxy would try oEmbed discovery first (a request to the link's page) and call the result "Embed Handler"; for these links the fix answers the proxy itself (`rest_dispatch_request`, after the proxy's permission check) as YouTube with type `video`, so the block becomes WordPress's YouTube embed (`providerNameSlug` `youtube`, its classes and aspect ratio) and no request leaves the site. A hidden variation of the Embed block (`src/admin/youtube-no-cookie`, `registerBlockVariation()`, no inserter item) carries the same pattern, so a pasted link is upgraded like a youtube.com link: `providerNameSlug` `youtube` and `responsive` (the player keeps 16:9 when the window narrows). No new block: posts keep core's Embed block. No longer needed when WordPress embeds these links itself; with the fix off, such links show as plain links.
 - **Settings** (site by site): on a single site, or activated on some sites of a network, each site's Settings, Ship Fixes, for its administrators (`manage_options`): one switch per fix. Activated for the whole network, also Network Admin, Settings, Ship Fixes (`manage_network_options`): the fixes for every site, and whether site administrators may decide for their own site (otherwise their screen goes). Where they may, what a site saved wins over the network's choice. DataForm screens (React, `src/admin/settings`) saving through the plugin's REST routes.
 - **Uninstall**: removes the settings from every site. The plugin keeps nothing else.
 
@@ -27,10 +28,11 @@ The block changes in Gutenberg while it is experimental. To follow a newer Guten
 |---|---|---|
 | Option (each site) | `ship_fixes_settings` | Fix ID => bool, only the fixes the site decided on (autoloaded: read on every request). |
 | Network option | `ship_fixes_network` | Network-wide only: fix ID => bool, and `site_overrides` (bool, default true). |
-| Fix IDs | `table_of_contents` | Default on. |
+| Fix IDs | `table_of_contents`, `youtube_no_cookie` | Both default on. |
+| Embed handler | `ship_fixes_youtube_no_cookie` | youtube-nocookie.com/embed/ links. |
 | Block | `core/table-of-contents` | WordPress's own name, registered only when missing. Attributes `onlyIncludeCurrentPage` (bool), `maxLevel` (number), `ordered` (bool); context `postId`, `postType`; rendered on the server. |
 | REST | `ship-fixes/v1/settings`, `ship-fixes/v1/network-settings` | GET and POST; the site's for its administrators where sites may decide, the network's for network administrators when network-wide. |
-| Script handles | `ship-fixes-settings`, the block's `wp-block-table-of-contents-editor` | From `build/`. |
+| Script handles | `ship-fixes-settings`, `ship-fixes-youtube-no-cookie` (block editor), the block's `wp-block-table-of-contents-editor` | From `build/`. |
 
 ## Privacy
 
@@ -38,7 +40,7 @@ No personal data, no cookies, nothing kept in the visitor's browser. Requests to
 
 ## Outside services
 
-None.
+YouTube, in the visitor's browser only: a page with a youtube-nocookie.com video loads YouTube's player from there (YouTube's privacy-enhanced mode). The plugin itself sends YouTube nothing, neither from the editor nor when the page is shown.
 
 ## Development
 
