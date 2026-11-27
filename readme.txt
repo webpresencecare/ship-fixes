@@ -1,7 +1,7 @@
 === Ship Fixes ===
 Contributors: patriciabt
 Tags: block, table of contents, youtube, embed, privacy
-Requires at least: 7.2
+Requires at least: 7.1
 Tested up to: 7.2
 Requires PHP: 8.4
 Stable tag: 0.3.0

@@ -4,7 +4,7 @@
  * Plugin URI:        https://www.webpresencecare.com/plugins
  * Description:       Small fixes and stopgaps for my sites, each one switched on or off: the Table of Contents block without the Gutenberg plugin, and YouTube videos in privacy-enhanced mode.
  * Version:           0.3.0
- * Requires at least: 7.2
+ * Requires at least: 7.1
  * Requires PHP:      8.4
  * Author:            Patricia BT
  * Author URI:        https://patriciabt.com

@@ -36,7 +36,7 @@ class PluginTest extends Ship_Fixes_TestCase {
 		$headers = $this->headers();
 		$slug    = basename( SHIP_FIXES_FILE, '.php' );
 		$this->assertSame( SHIP_FIXES_VERSION, $headers['Version'] );
-		$this->assertSame( '7.2', $headers['WP'] );
+		$this->assertSame( '7.1', $headers['WP'] );
 		$this->assertSame( '8.4', $headers['PHP'] );
 		$this->assertSame( $slug, $headers['TextDomain'] );
 		$this->assertSame( 'https://github.com/webpresencecare/' . $slug, $headers['UpdateURI'], 'Always set, so wordpress.org never offers another plugin of the same name as an update.' );
